@@ -10,8 +10,8 @@ import { resizeCanvas } from '@/utils/resizeCanvas';
 let interval: any = null;
 
 /**
- * Use connected webcam display the camera feed and provide functionality for
- * taking a screenshot, toggling surveillance, and recording video feed.
+ * Use connected webcam to display the camera feed and provide functionality for
+ * making a single prediction, toggling surveillance, and recording video feed.
  *
  * @returns {React.JSX.Element} A React element that renders a webcam to the user.
  */
