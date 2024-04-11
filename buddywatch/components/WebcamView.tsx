@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
+import { ToastContainer, toast, Flip, Bounce } from "react-toastify";
 import { drawPredictions } from "@/utils/drawPredictions";
 import { resizeCanvas } from "@/utils/resizeCanvas";
 
@@ -32,6 +33,7 @@ export default function WebcamView() {
   const capture = React.useCallback((): void => {
     const imageSrc: string | null | undefined =
       webcamRef.current?.getScreenshot();
+    toast.info("Screenshot taken!");
     sendImageToServer(imageSrc);
   }, [webcamRef]);
 
@@ -69,7 +71,11 @@ export default function WebcamView() {
       setSurveil(false);
       const context = canvasRef.current?.getContext("2d");
       context?.clearRect(0, 0, context.canvas.width, context.canvas.height);
-    } else setSurveil(true);
+      toast.info("Surveillance stopped!");
+    } else {
+      setSurveil(true);
+      toast.info("Surveillance stopped!");
+    }
   };
 
   return (
