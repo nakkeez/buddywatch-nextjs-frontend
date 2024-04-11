@@ -1,13 +1,14 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import ToastProvider from "@/lib/ToastProvider";
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import ToastProvider from '@/lib/ToastProvider';
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: "BuddyWatch",
-  description: "Keeps you save",
+  title: 'BuddyWatch',
+
+  description: 'Keeps you save',
 };
 
 export default function RootLayout({
