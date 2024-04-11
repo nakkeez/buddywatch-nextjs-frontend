@@ -1,23 +1,47 @@
+import React from 'react';
+
+interface PredictionData {
+  bbox: [number, number, number, number];
+  confidence: number;
+}
+
+interface ApiResponse {
+  prediction: PredictionData;
+}
+
+/**
+ * Draw a rectangle matching the bounding box coordinates got from the server.
+ *
+ * @param {ApiResponse} prediction Response from server containing the object detection model's prediction
+ * @param {React.RefObject<HTMLCanvasElement>} canvas Reference to the HTMLCanvasElement where the rectangle will be drawn
+ */
 export function drawPredictions(
-  prediction: any,
-  renderingContext: CanvasRenderingContext2D | null | undefined,
+  prediction: ApiResponse,
+  canvas: React.RefObject<HTMLCanvasElement>
 ): void {
   const { bbox, confidence } = prediction.prediction;
-  const [x, y, width, height] = bbox;
+  // Get bounding box coordinates
+  const [xmin, ymin, xmax, ymax] = bbox;
 
-  if (renderingContext && confidence > 0.8) {
-    renderingContext.beginPath(); // Draw new line
+  if (canvas.current) {
+    const renderingContext: CanvasRenderingContext2D | null =
+      canvas.current.getContext('2d');
+    if (renderingContext && confidence > 0.6) {
+      const { width, height } = canvas.current;
+      renderingContext.beginPath(); // Draw new line
 
-    renderingContext.font = "12px Courier New";
-    renderingContext.fillStyle = "#FF0F0F";
-    renderingContext.globalAlpha = 0.4;
+      renderingContext.font = '12px Courier New';
+      renderingContext.fillStyle = '#FF0F0F';
+      renderingContext.globalAlpha = 0.2;
 
-    renderingContext.roundRect(x * 680, y * 480, width * 680, height * 480);
-    renderingContext.fill();
-
-    renderingContext.font = "16px Courier New";
-    renderingContext.globalAlpha = 1;
-
-    renderingContext.fillText("person", x * 680, y * 480);
+      // Scale coordinates that are in a normalized format
+      renderingContext.roundRect(
+        xmin * width,
+        ymin * height,
+        xmax * width,
+        ymax * height
+      );
+      renderingContext.fill();
+    }
   }
 }

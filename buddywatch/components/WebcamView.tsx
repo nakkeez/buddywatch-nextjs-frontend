@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Webcam from 'react-webcam';
 import { toast } from 'react-toastify';
 import { Watch } from 'react-loader-spinner';
@@ -9,12 +9,21 @@ import { resizeCanvas } from '@/utils/resizeCanvas';
 
 let interval: any = null;
 
+/**
+ * Use connected webcam display the camera feed and provide functionality for
+ * taking a screenshot, toggling surveillance, and recording video feed.
+ *
+ * @returns {React.JSX.Element} A React element that renders a webcam to the user.
+ */
 export default function WebcamView() {
   const webcamRef = useRef<Webcam>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [surveil, setSurveil] = useState<boolean>(false);
+  const [capturing, setCapturing] = React.useState<boolean>(false);
+  const [recordedChunks, setRecordedChunks] = React.useState<Blob[]>([]);
 
   useEffect(() => {
     if (surveil) {
@@ -22,7 +31,7 @@ export default function WebcamView() {
         const imageSrc: string | null | undefined =
           webcamRef.current?.getScreenshot();
         sendImageToServer(imageSrc);
-      }, 1000);
+      }, 100);
     }
 
     return () => {
@@ -32,14 +41,33 @@ export default function WebcamView() {
     };
   }, [webcamRef.current, surveil]);
 
-  const capture = React.useCallback((): void => {
-    const imageSrc: string | null | undefined =
-      webcamRef.current?.getScreenshot();
-    toast.info('Screenshot taken!');
-    sendImageToServer(imageSrc);
+  /**
+   * Take an image and send that image to the server.
+   */
+  const capture = useCallback((): void => {
+    try {
+      if (webcamRef.current) {
+        const imageSrc: string | null | undefined =
+          webcamRef.current?.getScreenshot();
+        toast.success('Screenshot taken!');
+        sendImageToServer(imageSrc);
+      } else {
+        toast.error('Webcam not found!');
+      }
+    } catch (err) {
+      toast.error('Taking screenshot failed!');
+      console.error(err);
+    }
   }, [webcamRef]);
 
-  const sendImageToServer = (imageSrc: any): void => {
+  /**
+   * Send image to the object detection model in the server.
+   * Get a response with bounding box coordinates and confidence score back from the server.
+   * Resize canvas and drawn the bounding boxes in to the canvas.
+   *
+   * @param {string | null | undefined } imageSrc base64 encoded string of webcam image
+   */
+  const sendImageToServer = (imageSrc: string | null | undefined): void => {
     if (!imageSrc) return;
 
     // Convert Base64 string to a Blob
@@ -57,10 +85,10 @@ export default function WebcamView() {
           method: 'POST',
           body: data,
         })
-          .then((response) => response.json())
-          .then((data) => {
+          .then((response: Response) => response.json())
+          .then((data): void => {
             resizeCanvas(canvasRef, webcamRef);
-            drawPredictions(data, canvasRef.current?.getContext('2d'));
+            drawPredictions(data, canvasRef);
           })
           .catch((error) => {
             console.error('Error:', error);
@@ -68,20 +96,96 @@ export default function WebcamView() {
       });
   };
 
+  /**
+   * Change surveillance status and notify user about it.
+   * Remove drawn bounding box from the canvas.
+   */
   const changeSurveillanceStatus = (): void => {
     if (surveil) {
       setSurveil(false);
-      const context = canvasRef.current?.getContext('2d');
+      const context: CanvasRenderingContext2D | null | undefined =
+        canvasRef.current?.getContext('2d');
       context?.clearRect(0, 0, context.canvas.width, context.canvas.height);
-      toast.info('Surveillance stopped!');
+      toast.success('Surveillance stopped!');
     } else {
       setSurveil(true);
-      toast.info('Surveillance stopped!');
+      toast.success('Surveillance started!');
     }
   };
 
+  /**
+   * Start recording current media stream and place callback to store
+   * the recorded data chucks into state.
+   */
+  const startRecording = useCallback((): void => {
+    if (webcamRef.current && webcamRef.current.stream) {
+      mediaRecorderRef.current = new MediaRecorder(webcamRef.current.stream, {
+        mimeType: 'video/webm',
+      });
+      //
+      mediaRecorderRef.current.addEventListener(
+        'dataavailable',
+        storeRecordingIntoState
+      );
+      if (mediaRecorderRef.current) {
+        mediaRecorderRef.current.start();
+        setCapturing(true);
+        toast.success('Recording started!');
+      }
+    } else {
+      toast.error('Webcam not found!');
+    }
+  }, [webcamRef, setCapturing, mediaRecorderRef]);
+
+  /**
+   * Stop recording current media stream.
+   */
+  const stopRecording = useCallback((): void => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      setCapturing(false);
+      toast.success('Recording stopped!');
+    }
+  }, [mediaRecorderRef, webcamRef, setCapturing]);
+
+  /**
+   * Store recorded media into state when media stream ends
+   *
+   * @param {BlobEvent} data Blob object containing recorded data
+   */
+  const storeRecordingIntoState = useCallback(
+    ({ data }: BlobEvent): void => {
+      if (data.size > 0) {
+        setRecordedChunks((prev) => prev.concat(data));
+      }
+    },
+    [setRecordedChunks]
+  );
+
+  /**
+   * Download previously recorded media stream into user's device from state in webm format.
+   */
+  const downloadRecording = useCallback((): void => {
+    if (recordedChunks.length) {
+      const blob: Blob = new Blob(recordedChunks, {
+        type: 'video/webm',
+      });
+      const url: string = URL.createObjectURL(blob);
+      const download: HTMLAnchorElement = document.createElement('a');
+      document.body.appendChild(download);
+      download.href = url;
+      download.download = 'react-webcam-stream-capture.webm';
+      download.click();
+      window.URL.revokeObjectURL(url);
+      setRecordedChunks([]);
+    }
+  }, [recordedChunks]);
+
+  /**
+   * Set loading state to false. Called when webcam is loaded.
+   */
   const handleUserMedia = () => {
-    setLoading(false); // Set loading to false when webcam is loaded
+    setLoading(false);
   };
 
   // Apply a conditional styles based on loading state
@@ -112,18 +216,39 @@ export default function WebcamView() {
         <section className="my-3 flex w-full justify-around">
           <button
             onClick={capture}
-            className="w-32 rounded-lg bg-sky-500 py-2 font-bold text-white hover:bg-sky-700"
+            className="w-36 rounded-lg bg-sky-500 py-2 font-bold text-white hover:bg-sky-700"
           >
-            Screenshot
+            Make Prediction
           </button>
           <button
-            onClick={() => {
-              changeSurveillanceStatus();
-            }}
-            className="w-32 rounded-lg bg-sky-500 py-2 font-bold text-white hover:bg-sky-700"
+            onClick={changeSurveillanceStatus}
+            className="w-36 rounded-lg bg-sky-500 py-2 font-bold text-white hover:bg-sky-700"
           >
-            Surveil
+            {surveil ? 'Stop Surveilling' : 'Start Surveiling'}
           </button>
+          <button
+            onClick={capturing ? stopRecording : startRecording}
+            className="w-36 rounded-lg bg-sky-500 py-2 font-bold text-white hover:bg-sky-700"
+          >
+            {capturing ? 'Stop Recording' : 'Start Recording'}
+          </button>
+          {recordedChunks.length > 0 ? (
+            <button
+              onClick={downloadRecording}
+              className="w-36 rounded-lg bg-sky-500 py-2 font-bold text-white hover:bg-sky-700"
+            >
+              Download
+            </button>
+          ) : (
+            <button
+              className="w-36 rounded-lg bg-gray-500 py-2 font-bold text-white"
+              onClick={() => {
+                toast.error('Nothing has been recorded!');
+              }}
+            >
+              Download
+            </button>
+          )}
         </section>
       </section>
     </>
