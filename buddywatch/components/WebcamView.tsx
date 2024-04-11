@@ -90,8 +90,9 @@ export default function WebcamView() {
   return (
     <>
       {loading && (
-        <div className={'flex items-center justify-center'}>
-          <Watch color={'#0EA5E9'} /> {/* Show loading spinner */}
+        <div className={'flex h-screen items-center justify-center'}>
+          <Watch width={100} height={100} color={'#0EA5E9'} />{' '}
+          {/* Show loading spinner */}
         </div>
       )}
       {/* Apply contentClass to conditionally toggle visibility */}
@@ -108,20 +109,22 @@ export default function WebcamView() {
             className="absolute left-0 top-0 z-20 h-full w-full"
           />
         </div>
-        <button
-          onClick={capture}
-          className="rounded bg-sky-500 px-4 py-2 font-bold text-white hover:bg-sky-700"
-        >
-          Screenshot
-        </button>
-        <button
-          onClick={() => {
-            changeSurveillanceStatus();
-          }}
-          className="rounded bg-sky-500 px-4 py-2 font-bold text-white hover:bg-sky-700"
-        >
-          Surveil
-        </button>
+        <section className="my-3 flex w-full justify-around">
+          <button
+            onClick={capture}
+            className="w-32 rounded-lg bg-sky-500 py-2 font-bold text-white hover:bg-sky-700"
+          >
+            Screenshot
+          </button>
+          <button
+            onClick={() => {
+              changeSurveillanceStatus();
+            }}
+            className="w-32 rounded-lg bg-sky-500 py-2 font-bold text-white hover:bg-sky-700"
+          >
+            Surveil
+          </button>
+        </section>
       </section>
     </>
   );
