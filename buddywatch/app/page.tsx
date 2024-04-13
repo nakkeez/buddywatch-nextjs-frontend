@@ -7,7 +7,7 @@ export default function HomePage() {
       <header>
         <Header />
       </header>
-      <main className="flex h-screen flex-col items-center p-24 text-center">
+      <main className="flex h-screen flex-col items-center p-24">
         <WebcamView />
       </main>
     </>
