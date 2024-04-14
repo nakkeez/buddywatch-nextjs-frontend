@@ -2,10 +2,13 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Webcam from 'react-webcam';
+import { useSession } from 'next-auth/react';
+import { Icon } from '@iconify/react';
 import { toast } from 'react-toastify';
 import { Watch } from 'react-loader-spinner';
 import { drawPredictions } from '@/utils/drawPredictions';
 import { resizeCanvas } from '@/utils/resizeCanvas';
+import ActionButton from '@/components/ActionButton';
 
 let interval: any = null;
 
@@ -24,6 +27,8 @@ export default function WebcamView() {
   const [surveil, setSurveil] = useState<boolean>(false);
   const [capturing, setCapturing] = React.useState<boolean>(false);
   const [recordedChunks, setRecordedChunks] = React.useState<Blob[]>([]);
+
+  const { data: session } = useSession();
 
   useEffect(() => {
     if (surveil) {
@@ -44,7 +49,7 @@ export default function WebcamView() {
   /**
    * Take an image and send that image to the server.
    */
-  const capture = useCallback((): void => {
+  const capture = (): void => {
     try {
       if (webcamRef.current) {
         const imageSrc: string | null | undefined =
@@ -58,7 +63,7 @@ export default function WebcamView() {
       toast.error('Taking screenshot failed!');
       console.error(err);
     }
-  }, [webcamRef]);
+  };
 
   /**
    * Send image to the object detection model in the server.
@@ -83,16 +88,24 @@ export default function WebcamView() {
 
       const data: FormData = new FormData();
       data.append('image', file);
-
-      const response = await fetch('http://localhost:8000/api/predict/', {
-        method: 'POST',
-        body: data,
-      });
+      console.log(session?.user.access);
+      const response: Response = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_URL}/api/predict/`,
+        {
+          method: 'POST',
+          headers: {
+            authorization: `Bearer ${session?.user.access}`,
+          },
+          body: data,
+        }
+      );
 
       const serverResponse = await response.json();
 
-      resizeCanvas(canvasRef, webcamRef);
-      drawPredictions(serverResponse, canvasRef);
+      if (serverResponse.success) {
+        resizeCanvas(canvasRef, webcamRef);
+        drawPredictions(serverResponse, canvasRef);
+      }
     } catch (error) {
       toast.error('Error while sending data to the server!');
       console.error('Error while communicating with server:', error);
@@ -205,14 +218,20 @@ export default function WebcamView() {
       formData.append('file', blob, `${getCurrentDate()}_buddywatch.webm`);
       formData.append('name', 'Buddywatch Recording');
 
-      console.log(formData);
-
       try {
-        const response = await fetch('http://localhost:8000/api/upload/', {
-          method: 'POST',
-          body: formData,
-        });
+        const response: Response = await fetch(
+          `${process.env.NEXT_PUBLIC_BASE_URL}/api/videos/upload/`,
+          {
+            method: 'POST',
+            headers: {
+              authorization: `Bearer ${session?.user.access}`,
+            },
+            body: formData,
+          }
+        );
 
+        const serverResponse = await response.json();
+        console.log(serverResponse);
         if (response.ok) {
           toast.success('Video uploaded successfully!');
           setRecordedChunks([]);
@@ -260,59 +279,56 @@ export default function WebcamView() {
           />
         </div>
         <section className="my-3 flex w-full justify-around">
-          <button
+          <ActionButton
             onClick={capture}
-            className="w-36 rounded-lg bg-sky-500 py-2 font-bold text-white hover:bg-sky-700"
-          >
-            Make Prediction
-          </button>
-          <button
+            bgColor="bg-sky-500"
+            buttonText="Make Prediction"
+            icon={
+              <Icon icon="fluent:screenshot-20-filled" width="24" height="24" />
+            }
+          />
+          <ActionButton
             onClick={changeSurveillanceStatus}
-            className="w-36 rounded-lg bg-sky-500 py-2 font-bold text-white hover:bg-sky-700"
-          >
-            {surveil ? 'Stop Surveilling' : 'Start Surveiling'}
-          </button>
-          <button
+            bgColor="bg-sky-500"
+            buttonText={surveil ? 'Stop Surveilling' : 'Start Surveiling'}
+            icon={
+              <Icon
+                icon="icon-park-solid:surveillance-cameras-one"
+                width="24"
+                height="24"
+              />
+            }
+          />
+          <ActionButton
             onClick={capturing ? stopRecording : startRecording}
-            className="w-36 rounded-lg bg-sky-500 py-2 font-bold text-white hover:bg-sky-700"
-          >
-            {capturing ? 'Stop Recording' : 'Start Recording'}
-          </button>
-          {recordedChunks.length > 0 ? (
-            <>
-              <button
-                onClick={downloadRecording}
-                className="w-36 rounded-lg bg-sky-500 py-2 font-bold text-white hover:bg-sky-700"
-              >
-                Download Video
-              </button>
-              <button
-                onClick={sendRecordingToServer}
-                className="w-36 rounded-lg bg-sky-500 py-2 font-bold text-white hover:bg-sky-700"
-              >
-                Save Video
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                className="w-36 rounded-lg bg-gray-500 py-2 font-bold text-white"
-                onClick={() => {
-                  toast.error('Nothing has been recorded!');
-                }}
-              >
-                Download Video
-              </button>
-              <button
-                className="w-36 rounded-lg bg-gray-500 py-2 font-bold text-white"
-                onClick={() => {
-                  toast.error('Nothing has been recorded!');
-                }}
-              >
-                Save Video
-              </button>
-            </>
-          )}
+            bgColor="bg-sky-500"
+            buttonText={capturing ? 'Stop Recording' : 'Start Recording'}
+            icon={<Icon icon="foundation:record" width="24" height="24" />}
+          />
+          <ActionButton
+            onClick={
+              recordedChunks.length > 0
+                ? downloadRecording
+                : () => {
+                    toast.error('Nothing has been recorded!');
+                  }
+            }
+            bgColor={recordedChunks.length > 0 ? 'bg-sky-500' : 'bg-gray-500'}
+            buttonText="Download"
+            icon={<Icon icon="ic:round-download" width="24" height="24" />}
+          />
+          <ActionButton
+            onClick={
+              recordedChunks.length > 0
+                ? sendRecordingToServer
+                : () => {
+                    toast.error('Nothing has been recorded!');
+                  }
+            }
+            bgColor={recordedChunks.length > 0 ? 'bg-sky-500' : 'bg-gray-500'}
+            buttonText="Save Video"
+            icon={<Icon icon="ic:baseline-save" width="24" height="24" />}
+          />
         </section>
       </section>
     </>
