@@ -9,10 +9,9 @@ import VideoItem from '@/components/VideoItem';
 export default function VideoPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [videos, setVideos] = useState<Video[] | null>(null);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
   const fetchVideos = async () => {
-    console.log(session?.user.access);
     const response: Response = await fetch(
       `${process.env.NEXT_PUBLIC_BASE_URL}/api/videos/`,
       {
@@ -27,12 +26,14 @@ export default function VideoPage() {
     if (response.ok) {
       setVideos(serverResponse);
       setLoading(false);
+    } else {
+      toast.error('Fetching videos from the server failed.');
     }
   };
 
   useEffect(() => {
-    fetchVideos();
-  }, []);
+    if (status === 'authenticated') fetchVideos();
+  }, [status]);
 
   const deleteVideo = async (id: number) => {
     try {
