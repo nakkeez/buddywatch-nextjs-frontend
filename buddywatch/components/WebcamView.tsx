@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+// @ts-ignore
+import { v4 as uuidv4 } from 'uuid';
 import Webcam from 'react-webcam';
 import { useSession } from 'next-auth/react';
 import { Icon } from '@iconify/react';
@@ -214,9 +216,11 @@ export default function WebcamView() {
       });
       const formData: FormData = new FormData();
 
+      const videoTitle: string = `${getCurrentDate()}_${uuidv4()}`;
+
       // Append the blob to form data.
-      formData.append('file', blob, `${getCurrentDate()}_buddywatch.webm`);
-      formData.append('name', 'Buddywatch Recording');
+      formData.append('file', blob, `${videoTitle}.webm`);
+      formData.append('title', videoTitle);
 
       try {
         const response: Response = await fetch(
