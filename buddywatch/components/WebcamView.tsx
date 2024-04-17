@@ -7,7 +7,7 @@ import Webcam from 'react-webcam';
 import { useSession } from 'next-auth/react';
 import { Icon } from '@iconify/react';
 import { toast } from 'react-toastify';
-import { Watch } from 'react-loader-spinner';
+import { Circles } from 'react-loader-spinner';
 import { drawPredictions } from '@/utils/drawPredictions';
 import { resizeCanvas } from '@/utils/resizeCanvas';
 import ActionButton from '@/components/ActionButton';
@@ -29,6 +29,8 @@ export default function WebcamView() {
   const [surveil, setSurveil] = useState<boolean>(false);
   const [capturing, setCapturing] = React.useState<boolean>(false);
   const [recordedChunks, setRecordedChunks] = React.useState<Blob[]>([]);
+  const [startTime, setStartTime] = React.useState(0);
+  const [endTime, setEndTime] = React.useState(0);
 
   const { data: session } = useSession();
 
@@ -90,7 +92,7 @@ export default function WebcamView() {
 
       const data: FormData = new FormData();
       data.append('image', file);
-      console.log(session?.user.access);
+
       const response: Response = await fetch(
         `${process.env.NEXT_PUBLIC_BASE_URL}/api/predict/`,
         {
@@ -137,10 +139,10 @@ export default function WebcamView() {
    */
   const startRecording = useCallback((): void => {
     if (webcamRef.current && webcamRef.current.stream) {
+      const startTime: number = new Date().getTime(); // Capture start time
       mediaRecorderRef.current = new MediaRecorder(webcamRef.current.stream, {
         mimeType: 'video/webm',
       });
-      //
       mediaRecorderRef.current.addEventListener(
         'dataavailable',
         storeRecordingIntoState
@@ -148,6 +150,7 @@ export default function WebcamView() {
       if (mediaRecorderRef.current) {
         mediaRecorderRef.current.start();
         setCapturing(true);
+        setStartTime(startTime);
         toast.success('Recording started!');
       }
     } else {
@@ -162,12 +165,16 @@ export default function WebcamView() {
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
       setCapturing(false);
+
+      const endTime: number = new Date().getTime();
+      setEndTime(endTime);
+
       toast.success('Recording stopped!');
     }
   }, [mediaRecorderRef, webcamRef, setCapturing]);
 
   /**
-   * Store recorded media into state when media stream ends
+   * Store recorded media into state when media stream ends.
    *
    * @param {BlobEvent} data Blob object containing recorded data
    */
@@ -180,14 +187,17 @@ export default function WebcamView() {
     [setRecordedChunks]
   );
 
-  const getCurrentDate = (): string => {
-    const date: Date = new Date();
-
-    const day: number = date.getDate();
-    const month: number = date.getMonth() + 1;
-    const year: number = date.getFullYear();
-
-    return `${year}-${month}-${day}`;
+  /**
+   * Format Unix timestamps into file name friendly format.
+   *
+   * @param {number} date Unix epoch time stamp
+   * @returns {string} Datetime in YYYYMMDD-HHmmss format
+   */
+  const formatDateForFile = (date: number) => {
+    const isoString: string = new Date(date).toISOString();
+    const datePart: string = isoString.slice(0, 10).replace(/-/g, '');
+    const timePart: string = isoString.slice(11, 19).replace(/:/g, '');
+    return `${datePart}-${timePart}`;
   };
 
   /**
@@ -195,6 +205,10 @@ export default function WebcamView() {
    */
   const downloadRecording = useCallback((): void => {
     if (recordedChunks.length) {
+      const formattedStartTime: string = formatDateForFile(startTime);
+      const formattedEndTime: string = formatDateForFile(endTime);
+      const filename: string = `${formattedStartTime}_${formattedEndTime}_${session?.user.username}_buddywatch.webm`;
+
       const blob: Blob = new Blob(recordedChunks, {
         type: 'video/webm',
       });
@@ -202,24 +216,46 @@ export default function WebcamView() {
       const download: HTMLAnchorElement = document.createElement('a');
       document.body.appendChild(download);
       download.href = url;
-      download.download = `${getCurrentDate()}_buddywatch.webm`;
+      download.download = filename;
       download.click();
       window.URL.revokeObjectURL(url);
       setRecordedChunks([]);
     }
   }, [recordedChunks]);
 
+  /**
+   * Format Unix timestamps into file name friendly format.
+   *
+   * @param {number} start Unix epoch for start time
+   * @param {number} end Unix epoch for end time
+   * @returns {string} Datetime in YYYYMMDD-HHmmss format
+   */
+  const formatVideoTitle = (start: number, end: number) => {
+    const startString: string = new Date(startTime).toLocaleString('fi-FI');
+
+    const endString: string = new Date(endTime).toLocaleString('fi-FI');
+
+    return `${startString} - ${endString}`;
+  };
+
+  /**
+   * Send recorded webm video file to server.
+   */
   const sendRecordingToServer = useCallback(async (): Promise<void> => {
     if (recordedChunks.length) {
+      const formattedStartTime: string = formatDateForFile(startTime);
+      const formattedEndTime: string = formatDateForFile(endTime);
+      const filename: string = `${formattedStartTime}_${formattedEndTime}_${session?.user.username}_buddywatch.webm`;
+
       const blob: Blob = new Blob(recordedChunks, {
         type: 'video/webm',
       });
       const formData: FormData = new FormData();
 
-      const videoTitle: string = `${getCurrentDate()}_${uuidv4()}`;
+      const videoTitle: string = formatVideoTitle(startTime, endTime);
 
       // Append the blob to form data.
-      formData.append('file', blob, `${videoTitle}.webm`);
+      formData.append('file', blob, filename);
       formData.append('title', videoTitle);
 
       try {
@@ -265,7 +301,7 @@ export default function WebcamView() {
     <>
       {loading && (
         <div className={'flex h-screen items-center justify-center'}>
-          <Watch width={100} height={100} color={'#0EA5E9'} />{' '}
+          <Circles width={100} height={100} color={'#0EA5E9'} />{' '}
         </div>
       )}
       {/* Apply contentClass to conditionally toggle visibility */}
