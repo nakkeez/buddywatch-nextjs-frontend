@@ -1,16 +1,18 @@
 'use client';
 
-import { ReactNode, Suspense, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'react-toastify';
+import { Circles } from 'react-loader-spinner';
 import VideoItem from '@/components/VideoItem';
 
 export default function VideoPage() {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [videos, setVideos] = useState<Video[] | null>(null);
   const { data: session } = useSession();
 
   const fetchVideos = async () => {
+    console.log(session?.user.access);
     const response: Response = await fetch(
       `${process.env.NEXT_PUBLIC_BASE_URL}/api/videos/`,
       {
@@ -24,6 +26,7 @@ export default function VideoPage() {
     console.log(serverResponse);
     if (response.ok) {
       setVideos(serverResponse);
+      setLoading(false);
     }
   };
 
@@ -42,14 +45,13 @@ export default function VideoPage() {
           },
         }
       );
-      const serverResponse = await response.json();
-      if (response.status === 204) {
+
+      if (response.ok) {
         toast.success('Video deleted successfully!');
         fetchVideos();
-        console.log(videos);
       } else {
         toast.error('Failed to delete video');
-        console.error('Failed to delete video:', serverResponse);
+        console.log('Failed to delete video');
       }
     } catch (error) {
       toast.error('Failed to delete video');
@@ -58,14 +60,22 @@ export default function VideoPage() {
   };
 
   const videoItems = videos
-    ? videos.map((video: Video, index: number) => (
-        <VideoItem key={index} video={video} onDelete={deleteVideo} />
+    ? videos.map((video: Video) => (
+        <VideoItem key={video.id} video={video} onDelete={deleteVideo} />
       ))
     : null;
 
   return (
     <main className="h-screen p-8">
-      <ul>{videoItems}</ul>
+      <ul>
+        {loading ? (
+          <div className={'flex h-screen justify-center'}>
+            <Circles width={100} height={100} color={'#0EA5E9'} />{' '}
+          </div>
+        ) : (
+          videoItems
+        )}
+      </ul>
     </main>
   );
 }
