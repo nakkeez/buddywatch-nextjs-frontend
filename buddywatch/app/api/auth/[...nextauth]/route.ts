@@ -7,8 +7,13 @@ async function refreshAccessToken(token: any) {
     const tokenResponse: Response = await fetch(
       process.env.NEXT_PUBLIC_BASE_URL + '/api/token/refresh/',
       {
-        // @ts-ignore
-        refresh: token.refresh,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          refresh: token.refresh,
+        }),
       }
     );
 
@@ -91,7 +96,7 @@ export const authOptions = {
           accessTokenExpiration < now &&
           refreshTokenExpiration > now
         ) {
-          token = await refreshAccessToken(decodedAccessToken);
+          token = await refreshAccessToken(token);
           console.log('Refreshed: ' + token);
         } else if (
           accessTokenExpiration &&
@@ -103,7 +108,7 @@ export const authOptions = {
           console.log('Nulled: ' + token);
         }
       }
-
+      console.log(token);
       return { ...token, ...user };
     },
     async session({ session, token, user }: any) {
