@@ -1,13 +1,12 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-// @ts-ignore
-import { v4 as uuidv4 } from 'uuid';
 import Webcam from 'react-webcam';
 import { useSession } from 'next-auth/react';
 import { Icon } from '@iconify/react';
 import { toast } from 'react-toastify';
 import { Circles } from 'react-loader-spinner';
+import { Tooltip } from 'react-tooltip';
 import { drawPredictions } from '@/utils/drawPredictions';
 import { resizeCanvas } from '@/utils/resizeCanvas';
 import ActionButton from '@/components/ActionButton';
@@ -322,28 +321,27 @@ export default function WebcamView() {
           <ActionButton
             onClick={capture}
             bgColor="bg-sky-500"
-            buttonText="Make Prediction"
-            icon={
-              <Icon icon="fluent:screenshot-20-filled" width="24" height="24" />
-            }
+            icon="fluent:screenshot-20-filled"
+            tooltipId="capture-anchor"
+            tooltipText="Take a screenshot and make a prediction."
           />
           <ActionButton
             onClick={changeSurveillanceStatus}
             bgColor="bg-sky-500"
-            buttonText={surveil ? 'Stop Surveilling' : 'Start Surveiling'}
-            icon={
-              <Icon
-                icon="icon-park-solid:surveillance-cameras-one"
-                width="24"
-                height="24"
-              />
-            }
+            // buttonText={surveil ? 'Stop Surveilling' : 'Start Surveiling'}
+            icon="icon-park-solid:surveillance-cameras-one"
+            tooltipId="surveil-anchor"
+            tooltipText={surveil ? 'Stop surveillance' : 'Start surveillance'}
           />
           <ActionButton
             onClick={capturing ? stopRecording : startRecording}
             bgColor="bg-sky-500"
-            buttonText={capturing ? 'Stop Recording' : 'Start Recording'}
-            icon={<Icon icon="foundation:record" width="24" height="24" />}
+            // buttonText={capturing ? 'Stop Recording' : 'Start Recording'}
+            icon="foundation:record"
+            tooltipId="record-anchor"
+            tooltipText={
+              capturing ? 'Stop recording video' : 'Start recording video'
+            }
           />
           <ActionButton
             onClick={
@@ -354,8 +352,10 @@ export default function WebcamView() {
                   }
             }
             bgColor={recordedChunks.length > 0 ? 'bg-sky-500' : 'bg-gray-500'}
-            buttonText="Download"
-            icon={<Icon icon="ic:round-download" width="24" height="24" />}
+            // buttonText="Download"
+            icon="ic:round-download"
+            tooltipId="download-anchor"
+            tooltipText="Download recorded video"
           />
           <ActionButton
             onClick={
@@ -366,8 +366,10 @@ export default function WebcamView() {
                   }
             }
             bgColor={recordedChunks.length > 0 ? 'bg-sky-500' : 'bg-gray-500'}
-            buttonText="Save Video"
-            icon={<Icon icon="ic:baseline-save" width="24" height="24" />}
+            // buttonText="Save Video"
+            icon="ic:baseline-save"
+            tooltipId="save-anchor"
+            tooltipText="Save recorded video to server"
           />
         </section>
       </section>
