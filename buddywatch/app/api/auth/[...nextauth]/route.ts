@@ -3,6 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { jwtDecode, JwtPayload } from 'jwt-decode';
 
 async function refreshAccessToken(token: any) {
+  console.log('trying to refresh');
   try {
     const tokenResponse: Response = await fetch(
       process.env.NEXT_PUBLIC_BASE_URL + '/api/token/refresh/',
@@ -26,9 +27,9 @@ async function refreshAccessToken(token: any) {
     };
   } catch (error) {
     console.log(error);
-
     return {
       ...token,
+      access: null,
       error: 'RefreshTokenError',
     };
   }
@@ -68,7 +69,7 @@ export const authOptions = {
             return null;
           }
         } catch (error) {
-          console.error(error);
+          console.error('Error occurred while authenticating: ', error);
           return null;
         }
       },
@@ -108,7 +109,7 @@ export const authOptions = {
           console.log('Nulled: ' + token);
         }
       }
-      console.log(token);
+
       return { ...token, ...user };
     },
     async session({ session, token, user }: any) {
