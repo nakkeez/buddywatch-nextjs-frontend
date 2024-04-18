@@ -25,10 +25,11 @@ export default function ActionButton({
         anchorSelect={`#${tooltipId}`}
         content={tooltipText}
         place="bottom"
+        className="z-10"
       />
       <button
         onClick={onClick}
-        className={`inline-flex w-24 items-center justify-center rounded-lg ${bgColor} py-2 font-bold text-white ${onClick ? 'hover:bg-sky-700' : ''}`}
+        className={`inline-flex w-24 items-center justify-center rounded-lg ${bgColor} py-2 font-bold text-white ${bgColor !== 'bg-gray-500' ? 'hover:bg-sky-700' : ''}`}
       >
         <Icon icon={icon ? icon : ''} width="36" height="36" />
         <span>{buttonText}</span>

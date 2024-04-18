@@ -3,12 +3,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Webcam from 'react-webcam';
 import { useSession } from 'next-auth/react';
-import { Icon } from '@iconify/react';
 import { toast } from 'react-toastify';
 import { Circles } from 'react-loader-spinner';
-import { Tooltip } from 'react-tooltip';
 import { drawPredictions } from '@/utils/drawPredictions';
 import { resizeCanvas } from '@/utils/resizeCanvas';
+import { downloadFile } from '@/utils/downloadFile';
 import ActionButton from '@/components/ActionButton';
 
 let interval: any = null;
@@ -211,13 +210,8 @@ export default function WebcamView() {
       const blob: Blob = new Blob(recordedChunks, {
         type: 'video/webm',
       });
-      const url: string = URL.createObjectURL(blob);
-      const download: HTMLAnchorElement = document.createElement('a');
-      document.body.appendChild(download);
-      download.href = url;
-      download.download = filename;
-      download.click();
-      window.URL.revokeObjectURL(url);
+
+      downloadFile(blob, filename);
       setRecordedChunks([]);
     }
   }, [recordedChunks]);
@@ -299,8 +293,12 @@ export default function WebcamView() {
   return (
     <>
       {loading && (
-        <div className={'flex h-screen items-center justify-center'}>
-          <Circles width={100} height={100} color={'#0EA5E9'} />{' '}
+        <div
+          className={
+            'absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transform'
+          }
+        >
+          <Circles width={100} height={100} color={'#0EA5E9'} />
         </div>
       )}
       {/* Apply contentClass to conditionally toggle visibility */}
@@ -321,23 +319,22 @@ export default function WebcamView() {
           <ActionButton
             onClick={capture}
             bgColor="bg-sky-500"
-            icon="fluent:screenshot-20-filled"
+            icon="f7:camera"
             tooltipId="capture-anchor"
             tooltipText="Take a screenshot and make a prediction."
           />
           <ActionButton
             onClick={changeSurveillanceStatus}
             bgColor="bg-sky-500"
-            // buttonText={surveil ? 'Stop Surveilling' : 'Start Surveiling'}
-            icon="icon-park-solid:surveillance-cameras-one"
+            icon="icon-park-outline:surveillance-cameras-one"
             tooltipId="surveil-anchor"
             tooltipText={surveil ? 'Stop surveillance' : 'Start surveillance'}
           />
           <ActionButton
             onClick={capturing ? stopRecording : startRecording}
+            // uiw:video-camera
             bgColor="bg-sky-500"
-            // buttonText={capturing ? 'Stop Recording' : 'Start Recording'}
-            icon="foundation:record"
+            icon="solar:videocamera-record-linear"
             tooltipId="record-anchor"
             tooltipText={
               capturing ? 'Stop recording video' : 'Start recording video'
@@ -352,8 +349,7 @@ export default function WebcamView() {
                   }
             }
             bgColor={recordedChunks.length > 0 ? 'bg-sky-500' : 'bg-gray-500'}
-            // buttonText="Download"
-            icon="ic:round-download"
+            icon="tabler:download"
             tooltipId="download-anchor"
             tooltipText="Download recorded video"
           />
@@ -366,8 +362,7 @@ export default function WebcamView() {
                   }
             }
             bgColor={recordedChunks.length > 0 ? 'bg-sky-500' : 'bg-gray-500'}
-            // buttonText="Save Video"
-            icon="ic:baseline-save"
+            icon="carbon:save"
             tooltipId="save-anchor"
             tooltipText="Save recorded video to server"
           />
