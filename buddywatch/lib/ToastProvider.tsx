@@ -1,9 +1,6 @@
-'use client';
-
 import React from 'react';
 import 'react-toastify/dist/ReactToastify.css';
 import { Bounce, ToastContainer } from 'react-toastify';
-import '../app/globals.css';
 
 interface ToastProviderProps {
   children: React.ReactNode;
