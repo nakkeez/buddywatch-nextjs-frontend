@@ -57,7 +57,7 @@ export default function RegisterForm() {
   };
 
   return (
-    <div className="w-full max-w-lg rounded-lg border bg-white p-12 shadow-xl">
+    <div className="w-full max-w-lg rounded-lg border p-12 shadow-xl dark:border-gray-500 dark:bg-indigo-700">
       <div className="mx-auto max-w-md space-y-6">
         <h3 className="text-lg font-semibold">Register to BuddyWatch</h3>
         <div>
@@ -68,7 +68,7 @@ export default function RegisterForm() {
             placeholder="username"
             required
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full rounded border p-2 font-mono shadow ring-1 ring-inset ring-gray-300 hover:border-indigo-600"
+            className="w-full rounded border p-2 font-mono shadow ring-1 ring-inset ring-gray-300 hover:border-indigo-600 dark:border-gray-500 dark:ring-gray-700 dark:hover:border-slate-200"
           />
         </div>
         <div>
@@ -79,7 +79,7 @@ export default function RegisterForm() {
             placeholder="password"
             required
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded border p-2 font-mono shadow ring-1 ring-inset ring-gray-300 hover:border-indigo-600"
+            className="w-full rounded border p-2 font-mono shadow ring-1 ring-inset ring-gray-300 hover:border-indigo-600 dark:border-gray-500 dark:ring-gray-700 dark:hover:border-slate-200"
           />
         </div>
         <div>
@@ -90,18 +90,18 @@ export default function RegisterForm() {
             placeholder="confirm password"
             required
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full rounded border p-2 font-mono shadow ring-1 ring-inset ring-gray-300 hover:border-indigo-600"
+            className="w-full rounded border p-2 font-mono shadow ring-1 ring-inset ring-gray-300 hover:border-indigo-600 dark:border-gray-500 dark:ring-gray-700 dark:hover:border-slate-200"
           />
         </div>
         <div className="flex items-center justify-between gap-3 pt-3">
           <button
             onClick={registerNewUser}
-            className="rounded-lg border px-4 py-2 shadow ring-1 ring-inset ring-gray-300 hover:border-indigo-600"
+            className="rounded border px-4 py-2 shadow ring-1 ring-inset ring-gray-300 hover:border-indigo-600 dark:border-gray-500 dark:bg-slate-700 dark:ring-gray-700 dark:hover:border-slate-200"
           >
             Register
           </button>
           <Link href="/login" className="ml-4">
-            <p className="font-bold text-indigo-800">
+            <p className="font-bold text-indigo-800 dark:text-white">
               Login with existing account
             </p>
           </Link>
