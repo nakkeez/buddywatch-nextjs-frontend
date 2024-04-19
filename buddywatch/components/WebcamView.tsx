@@ -31,7 +31,7 @@ export default function WebcamView() {
   const [endTime, setEndTime] = React.useState(0);
 
   const { data: session } = useSession();
-  console.log(session);
+
   useEffect(() => {
     if (isSurveilling) {
       interval = setInterval((): void => {
@@ -70,7 +70,7 @@ export default function WebcamView() {
   /**
    * Send image to the object detection model in the server.
    * Get a response with bounding box coordinates and confidence score back from the server.
-   * Resize canvas and drawn the bounding boxes in to the canvas.
+   * Resize canvas and drawn the bounding box to the HTML canvas.
    *
    * @param {string | null | undefined } imageSrc base64 encoded string of webcam image
    */
@@ -107,6 +107,7 @@ export default function WebcamView() {
       if (serverResponse.success) {
         resizeCanvas(canvasRef, webcamRef);
         drawPredictions(serverResponse, canvasRef);
+        if (!isSurveilling) setTimeout(clearCanvas, 1000);
       }
     } catch (error) {
       toast.error('Error while sending data to the server!');
@@ -118,12 +119,20 @@ export default function WebcamView() {
    * Change surveillance status and notify user about it.
    * Remove drawn bounding box from the canvas.
    */
+  const clearCanvas = (): void => {
+    const context: CanvasRenderingContext2D | null | undefined =
+      canvasRef.current?.getContext('2d');
+    context?.clearRect(0, 0, context.canvas.width, context.canvas.height);
+  };
+
+  /**
+   * Change surveillance status and notify user about it.
+   * Remove drawn bounding box from the canvas.
+   */
   const changeSurveillanceStatus = (): void => {
     if (isSurveilling) {
       setIsSurveilling(false);
-      const context: CanvasRenderingContext2D | null | undefined =
-        canvasRef.current?.getContext('2d');
-      context?.clearRect(0, 0, context.canvas.width, context.canvas.height);
+      setTimeout(clearCanvas, 1000);
       toast.success('Surveillance stopped!');
     } else {
       setIsSurveilling(true);
@@ -133,7 +142,8 @@ export default function WebcamView() {
 
   /**
    * Start recording current media stream and place callback to store
-   * the recorded data chucks into state.
+   * the recorded data chucks into state when data becomes available.
+   * Capture the start time of the recording.
    */
   const startRecording = useCallback((): void => {
     if (webcamRef.current && webcamRef.current.stream) {
@@ -157,7 +167,7 @@ export default function WebcamView() {
   }, [webcamRef, setIsRecording, mediaRecorderRef]);
 
   /**
-   * Stop recording current media stream.
+   * Stop recording current media stream. Capture the end time of the recording.
    */
   const stopRecording = useCallback((): void => {
     if (mediaRecorderRef.current) {
@@ -172,14 +182,14 @@ export default function WebcamView() {
   }, [mediaRecorderRef, webcamRef, setIsRecording]);
 
   /**
-   * Store recorded media into state when media stream ends.
+   * Store recorded data chunks into state when media stream ends.
    *
    * @param {BlobEvent} data Blob object containing recorded data
    */
   const storeRecordingIntoState = useCallback(
     ({ data }: BlobEvent): void => {
       if (data.size > 0) {
-        setRecordedChunks((prev) => prev.concat(data));
+        setRecordedChunks((prev: Blob[]) => prev.concat(data));
       }
     },
     [setRecordedChunks]
@@ -217,22 +227,22 @@ export default function WebcamView() {
   }, [recordedChunks]);
 
   /**
-   * Format Unix timestamps into file name friendly format.
+   * Format Unix timestamps into user's preferred datetime format.
    *
    * @param {number} start Unix epoch for start time
    * @param {number} end Unix epoch for end time
-   * @returns {string} Datetime in YYYYMMDD-HHmmss format
+   * @returns {string} Datetime in local time format
    */
   const formatVideoTitle = (start: number, end: number) => {
-    const startString: string = new Date(startTime).toLocaleString('fi-FI');
+    const startString: string = new Date(startTime).toLocaleString();
 
-    const endString: string = new Date(endTime).toLocaleString('fi-FI');
+    const endString: string = new Date(endTime).toLocaleString();
 
     return `${startString} - ${endString}`;
   };
 
   /**
-   * Send recorded webm video file to server.
+   * Convert recorded data chunks into webm Blob and send it to the server.
    */
   const sendRecordingToServer = useCallback(async (): Promise<void> => {
     if (recordedChunks.length) {
@@ -263,8 +273,6 @@ export default function WebcamView() {
           }
         );
 
-        const serverResponse = await response.json();
-        console.log(serverResponse);
         if (response.ok) {
           toast.success('Video uploaded successfully!');
           setRecordedChunks([]);
@@ -325,7 +333,7 @@ export default function WebcamView() {
           />
           <ActionButton
             onClick={changeSurveillanceStatus}
-            bgColor="bg-sky-500"
+            bgColor={isSurveilling ? 'bg-green-600' : 'bg-sky-500'}
             icon="icon-park-outline:surveillance-cameras-one"
             tooltipId="surveil-anchor"
             tooltipText={
@@ -334,7 +342,7 @@ export default function WebcamView() {
           />
           <ActionButton
             onClick={isRecording ? stopRecording : startRecording}
-            bgColor="bg-sky-500"
+            bgColor={isRecording ? 'bg-green-600' : 'bg-sky-500'}
             icon="solar:videocamera-record-linear"
             tooltipId="record-anchor"
             tooltipText={
