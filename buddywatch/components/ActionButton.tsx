@@ -6,9 +6,9 @@ interface Props {
   onClick?: () => void;
   bgColor?: string;
   buttonText?: string;
-  icon?: string;
-  tooltipId?: string;
-  tooltipText?: string;
+  icon: string;
+  tooltipId: string;
+  tooltipText: string;
 }
 
 export default function ActionButton({
@@ -19,14 +19,6 @@ export default function ActionButton({
   tooltipId,
   tooltipText,
 }: Props) {
-  let textColor: string = 'text-white';
-  if (
-    tooltipText === 'Stop recording video' ||
-    tooltipText === 'Stop surveillance'
-  ) {
-    textColor = 'text-red-600';
-  }
-
   return (
     <div id={tooltipId}>
       <Tooltip
@@ -37,10 +29,10 @@ export default function ActionButton({
       />
       <button
         onClick={onClick}
-        className={`w-24 rounded-lg ${bgColor} py-2 font-bold text-white ${bgColor !== 'bg-gray-500' ? 'hover:bg-sky-700' : ''}`}
+        className={`w-24 rounded-lg ${bgColor} py-2 font-bold text-white ${bgColor !== 'bg-gray-500' ? 'hover:brightness-125' : ''}`}
       >
         <span
-          className={`flex h-full w-full items-center justify-center ${bgColor !== 'bg-gray-500' ? 'transition-all duration-100 hover:scale-125' : ''} ${textColor}`}
+          className={`flex h-full w-full items-center justify-center ${bgColor !== 'bg-gray-500' ? 'transition-all duration-100 hover:scale-125' : ''}`}
         >
           <Icon icon={icon ? icon : ''} width="36" height="36" />
           {buttonText}
