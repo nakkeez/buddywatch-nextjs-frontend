@@ -1,12 +1,17 @@
 'use client';
 
-import { signIn } from 'next-auth/react';
+import { signIn, SignInResponse } from 'next-auth/react';
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { toast } from 'react-toastify';
+import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
 export default function LoginForm() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+
+  const { push } = useRouter();
 
   return (
     <div className="w-full max-w-lg rounded-lg border p-12 shadow-xl dark:border-gray-500 dark:bg-indigo-700">
@@ -17,6 +22,7 @@ export default function LoginForm() {
           <input
             type="text"
             name="username"
+            value={username}
             placeholder="username"
             required
             onChange={(e) => setUsername(e.target.value)}
@@ -28,6 +34,7 @@ export default function LoginForm() {
           <input
             type="password"
             name="password"
+            value={password}
             placeholder="password"
             required
             onChange={(e) => setPassword(e.target.value)}
@@ -36,13 +43,27 @@ export default function LoginForm() {
         </div>
         <div className="flex items-center justify-between gap-3 pt-3">
           <button
-            onClick={() =>
-              signIn('credentials', {
-                username: username,
-                password: password,
-                callbackUrl: '/',
-              })
-            }
+            onClick={async () => {
+              if (!username || !password) {
+                toast.error('Please fill in all fields');
+                setPassword('');
+                return;
+              }
+              const loginAttempt: SignInResponse | undefined = await signIn(
+                'credentials',
+                {
+                  username: username,
+                  password: password,
+                  redirect: false,
+                }
+              );
+              if (loginAttempt?.ok) {
+                push('/');
+              } else {
+                setPassword('');
+                toast.error('Wrong credentials');
+              }
+            }}
             className="rounded border px-4 py-2 shadow ring-1 ring-inset ring-gray-300 hover:border-indigo-600 dark:border-gray-500 dark:bg-slate-700 dark:ring-gray-700 dark:hover:border-slate-200"
           >
             Login

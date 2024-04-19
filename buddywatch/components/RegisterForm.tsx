@@ -13,46 +13,48 @@ export default function RegisterForm() {
   const { push } = useRouter();
 
   const registerNewUser = async (): Promise<void> => {
-    if (!username || !password) {
-      toast.error('Username and password required');
-    } else if (password != confirmPassword) {
+    if (!username || !password || !confirmPassword) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    if (password != confirmPassword) {
       toast.error('Passwords do not match');
-    } else {
-      try {
-        const data: FormData = new FormData();
-        data.append('username', username);
-        data.append('password', password);
+      return;
+    }
 
-        const response: Response = await fetch(
-          `${process.env.NEXT_PUBLIC_BASE_URL}/api/user/register/`,
-          {
-            method: 'POST',
-            body: data,
-          }
-        );
+    try {
+      const data: FormData = new FormData();
+      data.append('username', username);
+      data.append('password', password);
 
-        const serverResponse = await response.json();
-
-        if (response.ok) {
-          console.log(serverResponse);
-          toast.success('Successfully registered');
-          push('/login');
-        } else {
-          console.error('Failed to create account', serverResponse);
-
-          // Format error response
-          const errorMessage: string = Object.keys(serverResponse)
-            .map(
-              (key: string): string =>
-                `${key}: ${serverResponse[key].join(', ')}`
-            )
-            .join('\n');
-          toast.error(errorMessage);
+      const response: Response = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_URL}/api/user/register/`,
+        {
+          method: 'POST',
+          body: data,
         }
-      } catch (error) {
-        console.error(error);
-        toast.error('Failed to create account');
+      );
+
+      const serverResponse = await response.json();
+
+      if (response.ok) {
+        toast.success('Successfully registered');
+        push('/login');
+      } else {
+        console.error('Failed to create account', serverResponse);
+
+        // Format error response
+        const errorMessage: string = Object.keys(serverResponse)
+          .map(
+            (key: string): string => `${key}: ${serverResponse[key].join(', ')}`
+          )
+          .join('\n');
+        toast.error(errorMessage);
       }
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to create account');
     }
   };
 
