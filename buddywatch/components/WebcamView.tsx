@@ -23,17 +23,17 @@ export default function WebcamView() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
-  const [loading, setLoading] = useState<boolean>(true);
-  const [surveil, setSurveil] = useState<boolean>(false);
-  const [capturing, setCapturing] = React.useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isSurveilling, setIsSurveilling] = useState<boolean>(false);
+  const [isRecording, setIsRecording] = React.useState<boolean>(false);
   const [recordedChunks, setRecordedChunks] = React.useState<Blob[]>([]);
   const [startTime, setStartTime] = React.useState(0);
   const [endTime, setEndTime] = React.useState(0);
 
   const { data: session } = useSession();
-
+  console.log(session);
   useEffect(() => {
-    if (surveil) {
+    if (isSurveilling) {
       interval = setInterval((): void => {
         const imageSrc: string | null | undefined =
           webcamRef.current?.getScreenshot();
@@ -46,7 +46,7 @@ export default function WebcamView() {
         clearInterval(interval);
       }
     };
-  }, [webcamRef.current, surveil]);
+  }, [webcamRef.current, isSurveilling]);
 
   /**
    * Take an image and send that image to the server.
@@ -119,14 +119,14 @@ export default function WebcamView() {
    * Remove drawn bounding box from the canvas.
    */
   const changeSurveillanceStatus = (): void => {
-    if (surveil) {
-      setSurveil(false);
+    if (isSurveilling) {
+      setIsSurveilling(false);
       const context: CanvasRenderingContext2D | null | undefined =
         canvasRef.current?.getContext('2d');
       context?.clearRect(0, 0, context.canvas.width, context.canvas.height);
       toast.success('Surveillance stopped!');
     } else {
-      setSurveil(true);
+      setIsSurveilling(true);
       toast.success('Surveillance started!');
     }
   };
@@ -147,14 +147,14 @@ export default function WebcamView() {
       );
       if (mediaRecorderRef.current) {
         mediaRecorderRef.current.start();
-        setCapturing(true);
+        setIsRecording(true);
         setStartTime(startTime);
         toast.success('Recording started!');
       }
     } else {
       toast.error('Webcam not found!');
     }
-  }, [webcamRef, setCapturing, mediaRecorderRef]);
+  }, [webcamRef, setIsRecording, mediaRecorderRef]);
 
   /**
    * Stop recording current media stream.
@@ -162,14 +162,14 @@ export default function WebcamView() {
   const stopRecording = useCallback((): void => {
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
-      setCapturing(false);
+      setIsRecording(false);
 
       const endTime: number = new Date().getTime();
       setEndTime(endTime);
 
       toast.success('Recording stopped!');
     }
-  }, [mediaRecorderRef, webcamRef, setCapturing]);
+  }, [mediaRecorderRef, webcamRef, setIsRecording]);
 
   /**
    * Store recorded media into state when media stream ends.
@@ -284,15 +284,15 @@ export default function WebcamView() {
    * Set loading state to false. Called when webcam is loaded.
    */
   const handleUserMedia = () => {
-    setLoading(false);
+    setIsLoading(false);
   };
 
   // Apply a conditional styles based on loading state
-  const contentClass = loading ? 'opacity-0' : 'opacity-100';
+  const contentClass = isLoading ? 'opacity-0' : 'opacity-100';
 
   return (
     <>
-      {loading && (
+      {isLoading && (
         <div
           className={
             'absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transform'
@@ -328,16 +328,17 @@ export default function WebcamView() {
             bgColor="bg-sky-500"
             icon="icon-park-outline:surveillance-cameras-one"
             tooltipId="surveil-anchor"
-            tooltipText={surveil ? 'Stop surveillance' : 'Start surveillance'}
+            tooltipText={
+              isSurveilling ? 'Stop surveillance' : 'Start surveillance'
+            }
           />
           <ActionButton
-            onClick={capturing ? stopRecording : startRecording}
-            // uiw:video-camera
+            onClick={isRecording ? stopRecording : startRecording}
             bgColor="bg-sky-500"
             icon="solar:videocamera-record-linear"
             tooltipId="record-anchor"
             tooltipText={
-              capturing ? 'Stop recording video' : 'Start recording video'
+              isRecording ? 'Stop recording video' : 'Start recording video'
             }
           />
           <ActionButton

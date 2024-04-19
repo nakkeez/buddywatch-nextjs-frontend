@@ -19,6 +19,14 @@ export default function ActionButton({
   tooltipId,
   tooltipText,
 }: Props) {
+  let textColor: string = 'text-white';
+  if (
+    tooltipText === 'Stop recording video' ||
+    tooltipText === 'Stop surveillance'
+  ) {
+    textColor = 'text-red-600';
+  }
+
   return (
     <div id={tooltipId}>
       <Tooltip
@@ -29,10 +37,14 @@ export default function ActionButton({
       />
       <button
         onClick={onClick}
-        className={`inline-flex w-24 items-center justify-center rounded-lg ${bgColor} py-2 font-bold text-white ${bgColor !== 'bg-gray-500' ? 'hover:bg-sky-700' : ''}`}
+        className={`w-24 rounded-lg ${bgColor} py-2 font-bold text-white ${bgColor !== 'bg-gray-500' ? 'hover:bg-sky-700' : ''}`}
       >
-        <Icon icon={icon ? icon : ''} width="36" height="36" />
-        <span>{buttonText}</span>
+        <span
+          className={`flex h-full w-full items-center justify-center ${bgColor !== 'bg-gray-500' ? 'transition-all duration-100 hover:scale-125' : ''} ${textColor}`}
+        >
+          <Icon icon={icon ? icon : ''} width="36" height="36" />
+          {buttonText}
+        </span>
       </button>
     </div>
   );
