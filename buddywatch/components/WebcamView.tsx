@@ -18,52 +18,49 @@ let interval: any = null;
  *
  * @returns {React.JSX.Element} A React element that renders a webcam to the user.
  */
-export default function WebcamView() {
+export default function WebcamView(): React.JSX.Element {
   const webcamRef = useRef<Webcam>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const isRecording = useRef<boolean>(false);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSurveilling, setIsSurveilling] = useState<boolean>(false);
-  const [isRecording, setIsRecording] = React.useState<boolean>(false);
   const [recordedChunks, setRecordedChunks] = React.useState<Blob[]>([]);
   const [startTime, setStartTime] = React.useState(0);
   const [endTime, setEndTime] = React.useState(0);
+  const [isAutoRecording, setIsAutoRecording] = useState<boolean>(false);
+  const [emptyImageCount, setEmptyImageCount] = useState<number>(0);
 
   const { data: session } = useSession();
 
-  useEffect(() => {
-    if (isSurveilling) {
-      interval = setInterval((): void => {
-        const imageSrc: string | null | undefined =
-          webcamRef.current?.getScreenshot();
-        sendImageToServer(imageSrc);
-      }, 100);
-    }
+  const isSurveillingRef = useRef(isSurveilling);
 
-    return (): void => {
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
-  }, [webcamRef.current, isSurveilling]);
+  // Update the ref whenever isSurveilling changes
+  useEffect(() => {
+    isSurveillingRef.current = isSurveilling;
+  }, [isSurveilling]);
 
   /**
-   * Take an image and send that image to the server.
+   * Start and stop auto recording based on the confidence score of the object detection model.
+   *
+   * @param {any} confidence Confidence score of the object detection model's prediction
    */
-  const capture = (): void => {
-    try {
-      if (webcamRef.current) {
-        const imageSrc: string | null | undefined =
-          webcamRef.current?.getScreenshot();
-        sendImageToServer(imageSrc);
-        toast.success('Screenshot taken!');
-      } else {
-        toast.error('Webcam not found!');
+  const handleAutoRecording = (confidence: any) => {
+    const isPersonDetected: boolean = confidence > 0.7;
+    if (isPersonDetected && !isRecording.current) {
+      if (isSurveillingRef.current) {
+        startRecording();
       }
-    } catch (err) {
-      toast.error('Taking screenshot failed!');
-      console.error(err);
+    } else if (isPersonDetected && isRecording.current) {
+      setEmptyImageCount(0);
+    } else if (!isPersonDetected && isRecording.current) {
+      setEmptyImageCount(emptyImageCount + 1);
+      // Stop recording if 10 consecutive images without person in them are detected
+      if (emptyImageCount >= 10) {
+        stopRecording();
+        setEmptyImageCount(0);
+      }
     }
   };
 
@@ -78,7 +75,6 @@ export default function WebcamView() {
     imageSrc: string | null | undefined
   ): Promise<void> => {
     if (!imageSrc) return;
-
     try {
       // Convert Base64 string to a Blob
       const res: Response = await fetch(imageSrc);
@@ -107,11 +103,50 @@ export default function WebcamView() {
       if (serverResponse.success) {
         resizeCanvas(canvasRef, webcamRef);
         drawPredictions(serverResponse, canvasRef);
-        if (!isSurveilling) setTimeout(clearCanvas, 1000);
+        if (isSurveilling && isAutoRecording) {
+          handleAutoRecording(serverResponse.prediction.confidence);
+        }
       }
     } catch (error) {
       toast.error('Error while sending data to the server!');
       console.error('Error while communicating with server:', error);
+    }
+  };
+
+  // Initialize interval to send images to the server for object detection.
+  useEffect(() => {
+    if (isSurveilling) {
+      interval = setInterval((): void => {
+        const imageSrc: string | null | undefined =
+          webcamRef.current?.getScreenshot();
+        sendImageToServer(imageSrc);
+      }, 100);
+    } else {
+      clearInterval(interval);
+    }
+
+    return (): void => {
+      clearInterval(interval);
+    };
+  }, [webcamRef.current, isSurveilling, isAutoRecording, sendImageToServer]);
+
+  /**
+   * Take an image and send that image to the server.
+   */
+  const capture = (): void => {
+    try {
+      if (webcamRef.current) {
+        const imageSrc: string | null | undefined =
+          webcamRef.current?.getScreenshot();
+        sendImageToServer(imageSrc);
+        setTimeout(clearCanvas, 2000);
+        toast.success('Screenshot taken!');
+      } else {
+        toast.error('Webcam not found!');
+      }
+    } catch (err) {
+      toast.error('Taking screenshot failed!');
+      console.error(err);
     }
   };
 
@@ -126,62 +161,6 @@ export default function WebcamView() {
   };
 
   /**
-   * Change surveillance status and notify user about it.
-   * Remove drawn bounding box from the canvas.
-   */
-  const changeSurveillanceStatus = (): void => {
-    if (isSurveilling) {
-      setIsSurveilling(false);
-      setTimeout(clearCanvas, 1000);
-      toast.success('Surveillance stopped!');
-    } else {
-      setIsSurveilling(true);
-      toast.success('Surveillance started!');
-    }
-  };
-
-  /**
-   * Start recording current media stream and place callback to store
-   * the recorded data chucks into state when data becomes available.
-   * Capture the start time of the recording.
-   */
-  const startRecording = useCallback((): void => {
-    if (webcamRef.current && webcamRef.current.stream) {
-      const startTime: number = new Date().getTime(); // Capture start time
-      mediaRecorderRef.current = new MediaRecorder(webcamRef.current.stream, {
-        mimeType: 'video/webm',
-      });
-      mediaRecorderRef.current.addEventListener(
-        'dataavailable',
-        storeRecordingIntoState
-      );
-      if (mediaRecorderRef.current) {
-        mediaRecorderRef.current.start();
-        setIsRecording(true);
-        setStartTime(startTime);
-        toast.success('Recording started!');
-      }
-    } else {
-      toast.error('Webcam not found!');
-    }
-  }, [webcamRef, setIsRecording, mediaRecorderRef]);
-
-  /**
-   * Stop recording current media stream. Capture the end time of the recording.
-   */
-  const stopRecording = useCallback((): void => {
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-
-      const endTime: number = new Date().getTime();
-      setEndTime(endTime);
-
-      toast.success('Recording stopped!');
-    }
-  }, [mediaRecorderRef, webcamRef, setIsRecording]);
-
-  /**
    * Store recorded data chunks into state when media stream ends.
    *
    * @param {BlobEvent} data Blob object containing recorded data
@@ -194,6 +173,47 @@ export default function WebcamView() {
     },
     [setRecordedChunks]
   );
+
+  /**
+   * Start recording current media stream and place callback to store
+   * the recorded data chucks into state when data becomes available.
+   * Capture the start time of the recording.
+   */
+  const startRecording = useCallback((): void => {
+    // Clear previously recorded chunks
+    setRecordedChunks([]);
+
+    if (webcamRef.current && webcamRef.current.stream) {
+      const startTime: number = new Date().getTime(); // Capture start time
+      mediaRecorderRef.current = new MediaRecorder(webcamRef.current.stream, {
+        mimeType: 'video/webm',
+      });
+      mediaRecorderRef.current.ondataavailable = storeRecordingIntoState;
+      if (mediaRecorderRef.current) {
+        mediaRecorderRef.current.start();
+        isRecording.current = true;
+        setStartTime(startTime);
+        toast.success('Recording started!');
+      }
+    } else {
+      toast.error('Webcam not found!');
+    }
+  }, [webcamRef, mediaRecorderRef, storeRecordingIntoState]);
+
+  /**
+   * Stop recording current media stream. Capture the end time of the recording.
+   */
+  const stopRecording = useCallback((): void => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      isRecording.current = false;
+
+      const endTime: number = new Date().getTime();
+      setEndTime(endTime);
+
+      toast.success('Recording stopped!');
+    }
+  }, [mediaRecorderRef, webcamRef]);
 
   /**
    * Format Unix timestamps into file name friendly format.
@@ -224,7 +244,7 @@ export default function WebcamView() {
       downloadFile(blob, filename);
       setRecordedChunks([]);
     }
-  }, [recordedChunks]);
+  }, [recordedChunks, startTime, endTime, session?.user.username]);
 
   /**
    * Format Unix timestamps into user's preferred datetime format.
@@ -233,10 +253,10 @@ export default function WebcamView() {
    * @param {number} end Unix epoch for end time
    * @returns {string} Datetime in local time format
    */
-  const formatVideoTitle = (start: number, end: number) => {
-    const startString: string = new Date(startTime).toLocaleString();
+  const formatVideoTitle = (start: number, end: number): string => {
+    const startString: string = new Date(start).toLocaleString();
 
-    const endString: string = new Date(endTime).toLocaleString();
+    const endString: string = new Date(end).toLocaleString();
 
     return `${startString} - ${endString}`;
   };
@@ -288,11 +308,58 @@ export default function WebcamView() {
     }
   }, [recordedChunks, setRecordedChunks]);
 
+  useEffect(() => {
+    // Download recorded media stream into user's device when auto recording is enabled
+    // This is done to prevent issues with concurrency when using interval
+    if (isAutoRecording && recordedChunks.length > 0) {
+      sendRecordingToServer();
+    }
+  }, [isAutoRecording, recordedChunks, sendRecordingToServer]);
+
   /**
    * Set loading state to false. Called when webcam is loaded.
    */
   const handleUserMedia = () => {
     setIsLoading(false);
+  };
+
+  /**
+   * Enable or disable surveillance and notify user about it.
+   * Remove drawn bounding box from the canvas after one seconds
+   * of stopping surveillance.
+   */
+  const toggleSurveillance = (): void => {
+    setIsSurveilling(!isSurveilling);
+
+    if (!isSurveilling) {
+      toast.success('Surveillance started!');
+    } else {
+      toast.success('Surveillance stopped!');
+    }
+  };
+
+  useEffect(() => {
+    if (!isSurveilling) {
+      if (isRecording.current) {
+        stopRecording();
+      }
+      clearInterval(interval);
+      setTimeout(clearCanvas, 1000);
+    }
+  }, [isSurveilling]);
+
+  /**
+   * Enable or disable auto recording status and notify user about it.
+   *
+   */
+  const toggleAutoRecording = (): void => {
+    if (isAutoRecording) {
+      setIsAutoRecording(false);
+      toast.success('Auto recording disabled!');
+    } else {
+      setIsAutoRecording(true);
+      toast.success('Auto recording enabled!');
+    }
   };
 
   // Apply a conditional styles based on loading state
@@ -323,7 +390,7 @@ export default function WebcamView() {
             className="absolute left-0 top-0 z-20 h-full w-full"
           />
         </div>
-        <section className="my-3 flex w-full justify-around">
+        <section className="my-3 flex w-full justify-around rounded-xl bg-gray-200 py-4 dark:bg-gray-400">
           <ActionButton
             onClick={capture}
             bgColor="bg-sky-500"
@@ -332,7 +399,7 @@ export default function WebcamView() {
             tooltipText="Take a screenshot and make a prediction."
           />
           <ActionButton
-            onClick={changeSurveillanceStatus}
+            onClick={toggleSurveillance}
             bgColor={isSurveilling ? 'bg-green-600' : 'bg-sky-500'}
             icon="icon-park-outline:surveillance-cameras-one"
             tooltipId="surveil-anchor"
@@ -341,12 +408,59 @@ export default function WebcamView() {
             }
           />
           <ActionButton
-            onClick={isRecording ? stopRecording : startRecording}
-            bgColor={isRecording ? 'bg-green-600' : 'bg-sky-500'}
+            onClick={
+              isRecording.current
+                ? () => {
+                    toast.error(
+                      'Cannot enable auto recording while recording!'
+                    );
+                  }
+                : toggleAutoRecording
+            }
+            bgColor={
+              isRecording.current && isAutoRecording
+                ? 'bg-green-900'
+                : isRecording.current && !isAutoRecording
+                  ? 'bg-gray-500'
+                  : isAutoRecording
+                    ? 'bg-green-600'
+                    : 'bg-sky-500'
+            }
+            icon="ph:vinyl-record-light"
+            tooltipId="autorecord-anchor"
+            tooltipText={
+              isRecording.current && isAutoRecording
+                ? 'Cannot change setting during auto recording'
+                : !isRecording.current && isAutoRecording
+                  ? 'Disable auto recording'
+                  : 'Enable auto recording when person is detected'
+            }
+          />
+          <ActionButton
+            onClick={
+              isAutoRecording
+                ? () => {
+                    toast.error(
+                      'Cannot start recording while auto recording is enabled!'
+                    );
+                  }
+                : isRecording.current
+                  ? stopRecording
+                  : startRecording
+            }
+            bgColor={
+              isAutoRecording
+                ? 'bg-gray-500'
+                : isRecording.current
+                  ? 'bg-green-600'
+                  : 'bg-sky-500'
+            }
             icon="solar:videocamera-record-linear"
             tooltipId="record-anchor"
             tooltipText={
-              isRecording ? 'Stop recording video' : 'Start recording video'
+              isRecording.current
+                ? 'Stop recording video'
+                : 'Start recording video'
             }
           />
           <ActionButton
