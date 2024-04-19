@@ -1,5 +1,5 @@
 /**
- * Downloads a file to user's device.
+ * Download file to user's device.
  *
  * @param {Blob} blob Blob to be downloaded
  * @param {string} filename Name of the downloaded file
