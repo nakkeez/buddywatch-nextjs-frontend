@@ -12,7 +12,7 @@ import Webcam from 'react-webcam';
 export function resizeCanvas(
   canvasRef: React.RefObject<HTMLCanvasElement>,
   webcamRef: React.RefObject<Webcam>
-) {
+): void {
   const canvas: HTMLCanvasElement | null = canvasRef.current;
   const videoFeed: HTMLVideoElement | null | undefined =
     webcamRef.current?.video;
