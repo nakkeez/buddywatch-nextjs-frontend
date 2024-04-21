@@ -1,11 +1,16 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 import { Icon } from '@iconify/react';
 import ThemeSwitch from '@/components/ThemeSwitch';
 
-export default function Header() {
+/**
+ * Header component that contains the navigation, theme switching, and log out functionality.
+ * @returns {React.JSX.Element} Header component
+ */
+export default function Header(): React.JSX.Element {
   const { data: session } = useSession();
 
   return (
@@ -32,16 +37,26 @@ export default function Header() {
               Videos
             </p>
           </Link>
-          <Link
-            href={session?.user.access ? '/api/auth/signout' : '/login'}
-            className={`mx-3 rounded-lg bg-white px-2 shadow hover:bg-gray-300 dark:bg-indigo-700 dark:hover:bg-gray-300 ${session?.user.access ? 'text-red-600' : 'text-indigo-800'} shadow`}
-          >
-            <Icon
-              icon={session?.user.access ? 'tabler:logout' : 'tabler:login'}
-              width="40"
-              height="40"
-            />
-          </Link>
+          {session?.user.access ? (
+            <button
+              // Log user out using the signOut function from next-auth and redirect to the login page
+              onClick={() => signOut({ callbackUrl: '/login' })}
+              className="mx-3 rounded-lg bg-white px-2 text-red-600 shadow hover:bg-gray-300 dark:bg-indigo-700 dark:hover:bg-gray-300"
+            >
+              <Icon icon="tabler:logout" width="40" height="40" />
+            </button>
+          ) : (
+            <Link
+              href="/login"
+              className="${session?.user.access mx-3 rounded-lg bg-white px-2 text-indigo-800 shadow shadow hover:bg-gray-300 dark:bg-indigo-700 dark:hover:bg-gray-300"
+            >
+              <Icon
+                icon={session?.user.access ? 'tabler:logout' : 'tabler:login'}
+                width="40"
+                height="40"
+              />
+            </Link>
+          )}
         </nav>
       </section>
     </header>
