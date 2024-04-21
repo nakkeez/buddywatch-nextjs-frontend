@@ -1,17 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-export default function RegisterForm() {
+/**
+ * Component that displays a registration form.
+ *
+ * @returns {React.JSX.Element} The registration form
+ */
+export default function RegisterForm(): React.JSX.Element {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
   const { push } = useRouter();
 
+  /**
+   * Registers a new user to the server with the given username and password.
+   */
   const registerNewUser = async (): Promise<void> => {
     if (!username || !password || !confirmPassword) {
       toast.error('Please fill in all fields');

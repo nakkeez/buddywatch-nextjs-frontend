@@ -13,16 +13,16 @@ import ActionButton from '@/components/ActionButton';
 let interval: any = null;
 
 /**
- * Use connected webcam to display the camera feed and provide functionality for
+ * Component that uses connected webcam to display the camera feed and provide functionality for
  * making a single prediction, toggling surveillance, and recording video feed.
  *
- * @returns {React.JSX.Element} A React element that renders a webcam to the user.
+ * @returns {React.JSX.Element} A React element that renders a webcam and set of action buttons to the user.
  */
 export default function WebcamView(): React.JSX.Element {
   const webcamRef = useRef<Webcam>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const isRecording = useRef<boolean>(false);
+  const isRecordingRef = useRef<boolean>(false);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSurveilling, setIsSurveilling] = useState<boolean>(false);
@@ -34,9 +34,10 @@ export default function WebcamView(): React.JSX.Element {
 
   const { data: session } = useSession();
 
+  // Reference to the current value of isSurveilling. Needed for consistent concurrent behavior
   const isSurveillingRef = useRef(isSurveilling);
 
-  // Update the ref whenever isSurveilling changes
+  // Update the reference whenever isSurveilling changes
   useEffect(() => {
     isSurveillingRef.current = isSurveilling;
   }, [isSurveilling]);
@@ -48,13 +49,13 @@ export default function WebcamView(): React.JSX.Element {
    */
   const handleAutoRecording = (confidence: any) => {
     const isPersonDetected: boolean = confidence > 0.7;
-    if (isPersonDetected && !isRecording.current) {
+    if (isPersonDetected && !isRecordingRef.current) {
       if (isSurveillingRef.current) {
         startRecording();
       }
-    } else if (isPersonDetected && isRecording.current) {
+    } else if (isPersonDetected && isRecordingRef.current) {
       setEmptyImageCount(0);
-    } else if (!isPersonDetected && isRecording.current) {
+    } else if (!isPersonDetected && isRecordingRef.current) {
       setEmptyImageCount(emptyImageCount + 1);
       // Stop recording if 10 consecutive images without person in them are detected
       if (emptyImageCount >= 10) {
@@ -191,7 +192,7 @@ export default function WebcamView(): React.JSX.Element {
       mediaRecorderRef.current.ondataavailable = storeRecordingIntoState;
       if (mediaRecorderRef.current) {
         mediaRecorderRef.current.start();
-        isRecording.current = true;
+        isRecordingRef.current = true;
         setStartTime(startTime);
         toast.success('Recording started!');
       }
@@ -206,7 +207,7 @@ export default function WebcamView(): React.JSX.Element {
   const stopRecording = useCallback((): void => {
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
-      isRecording.current = false;
+      isRecordingRef.current = false;
 
       const endTime: number = new Date().getTime();
       setEndTime(endTime);
@@ -340,7 +341,7 @@ export default function WebcamView(): React.JSX.Element {
 
   useEffect(() => {
     if (!isSurveilling) {
-      if (isRecording.current) {
+      if (isRecordingRef.current) {
         stopRecording();
       }
       clearInterval(interval);
@@ -409,7 +410,7 @@ export default function WebcamView(): React.JSX.Element {
           />
           <ActionButton
             onClick={
-              isRecording.current
+              isRecordingRef.current
                 ? () => {
                     toast.error(
                       'Cannot enable auto recording while recording!'
@@ -418,9 +419,9 @@ export default function WebcamView(): React.JSX.Element {
                 : toggleAutoRecording
             }
             bgColor={
-              isRecording.current && isAutoRecording
+              isRecordingRef.current && isAutoRecording
                 ? 'bg-green-900'
-                : isRecording.current && !isAutoRecording
+                : isRecordingRef.current && !isAutoRecording
                   ? 'bg-gray-500'
                   : isAutoRecording
                     ? 'bg-green-600'
@@ -429,9 +430,9 @@ export default function WebcamView(): React.JSX.Element {
             icon="ph:vinyl-record-light"
             tooltipId="autorecord-anchor"
             tooltipText={
-              isRecording.current && isAutoRecording
+              isRecordingRef.current && isAutoRecording
                 ? 'Cannot change setting during auto recording'
-                : !isRecording.current && isAutoRecording
+                : !isRecordingRef.current && isAutoRecording
                   ? 'Disable auto recording'
                   : 'Enable auto recording when person is detected'
             }
@@ -444,21 +445,21 @@ export default function WebcamView(): React.JSX.Element {
                       'Cannot start recording while auto recording is enabled!'
                     );
                   }
-                : isRecording.current
+                : isRecordingRef.current
                   ? stopRecording
                   : startRecording
             }
             bgColor={
               isAutoRecording
                 ? 'bg-gray-500'
-                : isRecording.current
+                : isRecordingRef.current
                   ? 'bg-green-600'
                   : 'bg-sky-500'
             }
             icon="solar:videocamera-record-linear"
             tooltipId="record-anchor"
             tooltipText={
-              isRecording.current
+              isRecordingRef.current
                 ? 'Stop recording video'
                 : 'Start recording video'
             }

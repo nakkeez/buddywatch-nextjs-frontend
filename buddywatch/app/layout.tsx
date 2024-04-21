@@ -19,6 +19,11 @@ export const metadata: Metadata = {
   description: 'Keeps you save!',
 };
 
+/**
+ * The root layout of the application.
+ *
+ * @param children The children of the layout
+ */
 export default function RootLayout({
   children,
 }: Readonly<{

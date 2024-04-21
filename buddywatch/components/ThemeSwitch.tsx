@@ -1,14 +1,20 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { Icon } from '@iconify/react';
 
-export default function ThemeSwitch() {
+/**
+ * Component that toggles between light and dark mode.
+ * Mode is only set on client side after the component is mounted to
+ * prevent flashing of the theme.
+ *
+ * @returns {React.JSX.Element | null} The theme switch button if mounted, otherwise null
+ */
+export default function ThemeSwitch(): React.JSX.Element | null {
   const [mounted, setMounted] = useState<boolean>(false);
   const { setTheme, resolvedTheme } = useTheme();
 
   useEffect(() => setMounted(true), []);
 
-  // Render the button after the component has mounted to prevent errors during hydration
   if (!mounted) return null;
 
   const isLightMode: boolean = resolvedTheme === 'light';

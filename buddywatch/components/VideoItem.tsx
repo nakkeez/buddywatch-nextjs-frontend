@@ -1,3 +1,4 @@
+import React from 'react';
 import { Icon } from '@iconify/react';
 import Image from 'next/image';
 
@@ -7,17 +8,25 @@ interface VideoItemProps {
   onDownload: (id: number) => Promise<void>;
 }
 
+/**
+ * Component that displays a single video item.
+ *
+ * @param video The video to display
+ * @param onDelete The function to call when the delete button is clicked
+ * @param onDownload The function to call when the download button is clicked
+ * @returns {React.JSX.Element} The video item component
+ */
 export default function VideoItem({
   video,
   onDelete,
   onDownload,
-}: VideoItemProps) {
+}: VideoItemProps): React.JSX.Element {
   const formattedDate: string = new Date(video.created_at).toLocaleString(
     'fi-FI'
   );
 
   return (
-    <li className="my-4 flex max-w-xl rounded-lg p-4 shadow shadow-slate-500 dark:bg-indigo-900">
+    <li className="m-4 flex max-w-xl rounded-lg p-4 shadow shadow-slate-500 dark:bg-indigo-900">
       {video.thumbnail && (
         <Image
           src={video.thumbnail}

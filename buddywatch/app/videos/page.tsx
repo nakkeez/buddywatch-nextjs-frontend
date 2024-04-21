@@ -7,11 +7,19 @@ import { Circles } from 'react-loader-spinner';
 import VideoItem from '@/components/VideoItem';
 import { downloadFile } from '@/utils/downloadFile';
 
-export default function VideoPage() {
+/**
+ * Page that displays the videos uploaded by the logged-in user.
+ *
+ * @returns {React.JSX.Element} The video page with list of VideoItem components
+ */
+export default function VideoPage(): React.JSX.Element {
   const [loading, setLoading] = useState<boolean>(true);
   const [videos, setVideos] = useState<Video[] | null>(null);
   const { data: session, status } = useSession();
 
+  /**
+   * Fetches videos belonging to the logged-in user from the server.
+   */
   const fetchVideos = async () => {
     const response: Response = await fetch(
       `${process.env.NEXT_PUBLIC_BASE_URL}/api/videos/`,
@@ -36,6 +44,11 @@ export default function VideoPage() {
     if (status === 'authenticated') fetchVideos();
   }, [status]);
 
+  /**
+   * Downloads the video with the given id.
+   *
+   * @param {number} id Id of the video to download
+   */
   const downloadVideo = async (id: number) => {
     try {
       const response: Response = await fetch(
@@ -51,8 +64,8 @@ export default function VideoPage() {
       if (response.ok) {
         const blob: Blob = await response.blob();
         // Set default name
-        let fileName: string = 'download.webm';
-        // Get name of the file from header
+        let fileName: string = 'buddywatch-download.webm';
+        // Get name of the file from response header
         const contentDisposition: string | null = response.headers.get(
           'Content-Disposition'
         );
@@ -62,7 +75,7 @@ export default function VideoPage() {
           if (fileNameMatch && fileNameMatch.length > 1)
             fileName = fileNameMatch[1];
         }
-        // Remove path from file name
+        // Remove /videos path from file name
         fileName = fileName.replace(/^.*[\\/]/, '');
 
         downloadFile(blob, fileName);
@@ -77,6 +90,11 @@ export default function VideoPage() {
     }
   };
 
+  /**
+   * Deletes the video with the given id.
+   *
+   * @param {number} id Id of the video to delete
+   */
   const deleteVideo = async (id: number) => {
     try {
       const response: Response = await fetch(
@@ -91,6 +109,7 @@ export default function VideoPage() {
 
       if (response.ok) {
         toast.success('Video deleted successfully!');
+        // Refetch videos to update the list
         fetchVideos();
       } else {
         toast.error('Failed to delete video');
@@ -102,7 +121,7 @@ export default function VideoPage() {
     }
   };
 
-  const videoItems = videos
+  const videoItems: React.JSX.Element[] | null = videos
     ? videos.map((video: Video) => (
         <VideoItem
           key={video.id}
@@ -115,7 +134,7 @@ export default function VideoPage() {
 
   return (
     <section className="h-screen p-8">
-      <ul>
+      <ul className="flex flex-wrap justify-around">
         {loading ? (
           <div
             className={
