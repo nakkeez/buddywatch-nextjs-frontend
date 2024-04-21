@@ -2,8 +2,12 @@ import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { jwtDecode, JwtPayload } from 'jwt-decode';
 
+/**
+ * Refreshes the access token from the server using the refresh token.
+ * If the refresh token is invalid, the access token is set to null.
+ * @param {any} token The token object containing the access and refresh tokens.
+ */
 async function refreshAccessToken(token: any) {
-  console.log('trying to refresh');
   try {
     const tokenResponse: Response = await fetch(
       process.env.NEXT_PUBLIC_BASE_URL + '/api/token/refresh/',
@@ -19,17 +23,18 @@ async function refreshAccessToken(token: any) {
     );
 
     const accessToken = await tokenResponse.json();
-    console.log('Refreshed: ' + accessToken);
+
     return {
+      // Return the new access token and the old refresh token
       ...token,
       access: accessToken.access,
       refresh: token.refresh,
     };
   } catch (error) {
-    console.log(error);
+    // Return null token if refresh token is invalid
     return {
       ...token,
-      access: null,
+      token: null,
       error: 'RefreshTokenError',
     };
   }
@@ -44,6 +49,7 @@ export const authOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials, req) {
+        // Return null if no credentials are provided
         if (!credentials?.username || !credentials?.password) return null;
         try {
           const response = await fetch(
@@ -62,6 +68,8 @@ export const authOptions = {
 
           const user = await response.json();
 
+          // Return null if user has no access, i.e., user is not authenticated
+          // Otherwise, return the user object
           if (user) {
             if (!user.access) return null;
             return user;
@@ -76,9 +84,11 @@ export const authOptions = {
     }),
   ],
   pages: {
+    // Set the custom sign in page
     signIn: '/login',
   },
   callbacks: {
+    // Set callback to return the token and user object and refresh the access token if necessary
     async jwt({ token, user }: any) {
       if (token.access) {
         const decodedAccessToken: JwtPayload = jwtDecode(token.access);
@@ -98,20 +108,19 @@ export const authOptions = {
           refreshTokenExpiration > now
         ) {
           token = await refreshAccessToken(token);
-          console.log('Refreshed: ' + token);
         } else if (
           accessTokenExpiration &&
           refreshTokenExpiration &&
           accessTokenExpiration < now &&
           refreshTokenExpiration < now
         ) {
-          token = null;
-          console.log('Nulled: ' + token);
+          return null;
         }
       }
 
       return { ...token, ...user };
     },
+    // Set callback to add the user object to the session so its accessible in the app
     async session({ session, token, user }: any) {
       session.user = token as any;
       return session;
@@ -119,5 +128,6 @@ export const authOptions = {
   },
 };
 
+// Export the NextAuth handler
 export const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
