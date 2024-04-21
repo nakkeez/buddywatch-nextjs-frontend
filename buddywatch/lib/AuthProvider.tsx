@@ -10,6 +10,7 @@ interface AuthProviderProps {
 /**
  * Provider that wraps the application and provides authentication state.
  * @param {AuthProviderProps} children The children of the provider
+ * @returns The authentication provider
  */
 export default function AuthProvider({ children }: AuthProviderProps) {
   return (

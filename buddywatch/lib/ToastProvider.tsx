@@ -6,6 +6,11 @@ interface ToastProviderProps {
   children: React.ReactNode;
 }
 
+/**
+ * Provider that wraps the application and provides toast notifications.
+ * @param {ToastProviderProps} children The children of the provider
+ * @returns The toast provider
+ */
 export default function ToastProvider({ children }: ToastProviderProps) {
   return (
     <>
