@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Webcam from 'react-webcam';
+import { v4 as uuidv4 } from 'uuid';
 import { useSession } from 'next-auth/react';
 import { toast } from 'react-toastify';
 import { Circles } from 'react-loader-spinner';
@@ -269,7 +270,7 @@ export default function WebcamView(): React.JSX.Element {
     if (recordedChunks.length) {
       const formattedStartTime: string = formatDateForFile(startTime);
       const formattedEndTime: string = formatDateForFile(endTime);
-      const filename: string = `${formattedStartTime}_${formattedEndTime}_${session?.user.username}_buddywatch.webm`;
+      const filename: string = `${formattedStartTime}_${formattedEndTime}_buddywatch_${uuidv4()}.webm`;
 
       const blob: Blob = new Blob(recordedChunks, {
         type: 'video/webm',

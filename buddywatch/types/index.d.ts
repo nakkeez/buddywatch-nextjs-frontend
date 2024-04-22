@@ -6,3 +6,5 @@ interface Video {
   created_at: string;
   owner: number;
 }
+
+declare module 'uuid';
