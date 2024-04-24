@@ -379,7 +379,7 @@ export default function WebcamView(): React.JSX.Element {
         </div>
       )}
       {/* Apply contentClass to conditionally toggle visibility */}
-      <section className={`relative max-w-7xl text-center ${contentClass}`}>
+      <section className={`relative max-w-5xl text-center ${contentClass}`}>
         <div className="relative w-full">
           <Webcam
             ref={webcamRef}

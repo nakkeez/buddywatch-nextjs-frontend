@@ -26,7 +26,7 @@ export default function VideoItem({
   );
 
   return (
-    <li className="m-4 flex max-w-xl rounded-lg p-4 shadow shadow-slate-500 dark:bg-indigo-900">
+    <li className="w-xl m-4 flex rounded-lg p-4 shadow shadow-slate-500 dark:bg-indigo-900">
       {video.thumbnail && (
         <Image
           src={video.thumbnail}
