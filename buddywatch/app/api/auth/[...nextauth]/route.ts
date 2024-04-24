@@ -114,7 +114,7 @@ export const authOptions = {
           accessTokenExpiration < now &&
           refreshTokenExpiration < now
         ) {
-          return null;
+          token = null;
         }
       }
 
